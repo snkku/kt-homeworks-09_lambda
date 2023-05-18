@@ -1,8 +1,1 @@
-import ru.netology.*
-
-fun main() {
-    val cm = ChatService
-    cm.message(1,2, "test message")
-    cm.message(2, 1, "test message 2")
-
-}
+import ru.netology.*fun main() {    val cm = ChatService    cm.message(1,2, "test message")    cm.message(2, 1, "test message 2")    cm.message(3, 1, "new chat2")    cm.message(1,3, "answer to in chat2")    cm.message(1,3, "answer to in chat3")    cm.message(1,3, "answer to in chat4")    cm.message(1,3, "answer to in chat5")    println(cm.getChatList())    println(cm.getMessagesFromChat(2))    println(cm.getLastMessagesFromChat(2, 3))}

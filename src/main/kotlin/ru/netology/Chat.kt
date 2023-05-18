@@ -6,29 +6,35 @@ data class Chat(
     val messageList: MutableList<ChatMessage>
 )
 
-data class ChatMessage(
+data class ChatMessage (
     val messageId: Long,
     val from: Int,
     val text: String,
-    val isRead: Boolean = false,
+    var isRead: Boolean = false,
     val isDeleted: Boolean = false,
     val timestamp: Long = System.currentTimeMillis()
-)
-
-/*
-data class chatPair(
-    val firstUserId: Int,
-    val secondUserId: Int,
-    val messageList: MutableList<chatMessage> = mutableListOf<chatMessage>()
-)
+): Comparable<ChatMessage>
 {
-    fun message(from: Int, to: Int, message: String)
-    {
-        this.messageList.plus(chatMessage(from, to, message))
-    }
-
+    override fun compareTo(other: ChatMessage): Int = timestamp.compareTo(other.timestamp)
 }
-*/
+
+fun <E> Iterable<Chat>.fromTo(from: Int, to: Int): Chat? {
+    return try {
+        filter(fun(chat: Chat) = chat.recipients.containsAll(listOf(from, to)))[0]
+    } catch (e: IndexOutOfBoundsException)
+    {
+        null
+    }
+}
+
+fun <E> Iterable<Chat>.byId(chatId: Long): List<ChatMessage>? {
+    return try {
+        filter(fun(chat: Chat) = chat.chatId == chatId)[0].messageList
+    } catch (e: IndexOutOfBoundsException)
+    {
+        null
+    }
+}
 
 object ChatService
 {
@@ -37,32 +43,48 @@ object ChatService
     private var messageId: Long = 0
 
     fun message(from: Int, to: Int, message: String) {
-        var foundChat = this.chatList.filter(fun(chat: Chat) = chat.recipients.containsAll(listOf(from, to)))
-        if (foundChat.isEmpty())
+        val foundChat = this.chatList.fromTo<Chat>(from, to)
+        if (foundChat !== null)
         {
-            println("Chat not found! Creating new")
-            this.chatList+=Chat(++chatId, setOf(from, to), mutableListOf(ChatMessage(++messageId, from, message)))
+            println("Adding message to chat with ID: ${foundChat.chatId}")
+            foundChat.messageList.plusAssign(ChatMessage(++this.messageId, from, message))
         } else {
-            println("Chat already exists")
-            foundChat.plus(ChatMessage(++messageId, from, message))
-            println(foundChat)
+            this.chatList+=Chat(++this.chatId, setOf(from, to), mutableListOf(ChatMessage(++this.messageId, from, message)))
+            println("Created new chat with ID: ${this.chatId}")
         }
-        //this.messageList += ChatMessage(++this.messageId, from, to, message)
     }
 
-/*
-    fun getMessages(from: Int, to: Int, onlyNew: Boolean = false): List<ChatMessage>
+    fun getChatList(): List<Chat> = this.chatList
+
+    fun getLastMessagesFromChat(chatId: Long, limit: Int = 5): List<ChatMessage>?
+    {
+        val messages = this.getMessagesFromChat(chatId)
+        if (messages !== null)
+        {
+            val chatSize = messages.size
+            val startPos = if (chatSize >= limit) { chatSize-limit } else { 0 }
+            return messages.sorted().subList(startPos, chatSize) // last $limit messages
+        }
+        return null
+    }
+
+
+/*    fun getMessages(from: Int, to: Int, onlyNew: Boolean = false): List<ChatMessage>
     {
         val fromTo = fun(message: ChatMessage) = (message.from == from && message.to == to) || (message.from == to && message.to == from)
         val messageList = this.messageList.filter(fromTo)
         if (onlyNew)
            messageList.filter(fun(message: ChatMessage) = !message.isRead)
         return messageList
-    }
+    }*/
     fun getChats(to: Int)
     {
 
     }
-*/
+
+    fun getMessagesFromChat(chatId: Long): List<ChatMessage>?
+    {
+        return this.chatList.byId<ChatMessage>(chatId)
+    }
 
 }
