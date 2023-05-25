@@ -27,7 +27,7 @@ fun <E> Iterable<Chat>.fromTo(from: Int, to: Int): Chat? {
     }
 }
 
-fun <E> Iterable<Chat>.byId(chatId: Long): List<ChatMessage>? {
+fun <E> Iterable<Chat>.byId(chatId: Long): MutableList<ChatMessage>? {
     return try {
         filter(fun(chat: Chat) = chat.chatId == chatId)[0].messageList
     } catch (e: IndexOutOfBoundsException)
@@ -56,35 +56,40 @@ object ChatService
 
     fun getChatList(): List<Chat> = this.chatList
 
-    fun getLastMessagesFromChat(chatId: Long, limit: Int = 5): List<ChatMessage>?
+    fun getMessages(chatId: Long, fromMessageId: Long? = null, limit: Int = -1): List<ChatMessage>?
     {
         val messages = this.getMessagesFromChat(chatId)
-        if (messages !== null)
+        if (messages.size > 0)
         {
+            val outMessages = mutableListOf<ChatMessage>()
+            if (fromMessageId != null)
+                messages.filter { it.messageId >= fromMessageId }
             val chatSize = messages.size
-            val startPos = if (chatSize >= limit) { chatSize-limit } else { 0 }
-            return messages.sorted().subList(startPos, chatSize) // last $limit messages
+            val endPos = if (limit < 0) { chatSize } else { if (chatSize > limit) { limit } else { chatSize } }
+            outMessages+=messages.sorted().reversed().subList(0, endPos) // invert sorting to get latest messages
+            outMessages.map { it.isRead = true }
+            return outMessages
+        // last unreaded $limit messages
         }
         return null
     }
 
-
-/*    fun getMessages(from: Int, to: Int, onlyNew: Boolean = false): List<ChatMessage>
+    fun deleteChat(chatId: Long)
     {
-        val fromTo = fun(message: ChatMessage) = (message.from == from && message.to == to) || (message.from == to && message.to == from)
-        val messageList = this.messageList.filter(fromTo)
-        if (onlyNew)
-           messageList.filter(fun(message: ChatMessage) = !message.isRead)
-        return messageList
-    }*/
-    fun getChats(to: Int)
-    {
-
+        this.chatList-=this.chatList.filter { it.chatId == chatId }
     }
 
-    fun getMessagesFromChat(chatId: Long): List<ChatMessage>?
+    fun deleteMessage(chatId: Long, messageId: Long)
     {
-        return this.chatList.byId<ChatMessage>(chatId)
+        val chat = this.chatList.byId<ChatMessage>(chatId)
+        if (chat != null) {
+            chat-=chat.filter { it.messageId == messageId }
+        }
+    }
+
+    fun getMessagesFromChat(chatId: Long): MutableList<ChatMessage>
+    {
+        return this.chatList.byId<ChatMessage>(chatId) ?: mutableListOf()
     }
 
 }
