@@ -92,4 +92,17 @@ object ChatService
         return this.chatList.byId<ChatMessage>(chatId) ?: mutableListOf()
     }
 
+    fun getUnreadedChatsCount(): Int
+    {
+        val unreadedSet = mutableSetOf<Long>()
+        for (chat in this.chatList)
+        {
+            when((chat.messageList.filter { it.isRead == false }.size))
+            {
+                in 0 .. Int.MAX_VALUE -> unreadedSet.add(chat.chatId)
+            }
+        }
+        return unreadedSet.size
+    }
+
 }
