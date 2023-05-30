@@ -42,15 +42,23 @@ object ChatService
     private var chatId: Long = 0
     private var messageId: Long = 0
 
-    fun message(from: Int, to: Int, message: String) {
+    fun reInit()
+    {
+        this.chatList.clear()
+        this.chatId = 0
+        this.messageId = 0
+    }
+
+    fun message(from: Int, to: Int, message: String): Long {
         val foundChat = this.chatList.fromTo<Chat>(from, to)
-        if (foundChat !== null)
-        {
+        return if (foundChat !== null) {
             println("Adding message to chat with ID: ${foundChat.chatId}")
             foundChat.messageList.plusAssign(ChatMessage(++this.messageId, from, message))
+            this.messageId
         } else {
             this.chatList+=Chat(++this.chatId, setOf(from, to), mutableListOf(ChatMessage(++this.messageId, from, message)))
             println("Created new chat with ID: ${this.chatId}")
+            this.messageId
         }
     }
 
@@ -87,7 +95,7 @@ object ChatService
         }
     }
 
-    fun getMessagesFromChat(chatId: Long): MutableList<ChatMessage>
+    private fun getMessagesFromChat(chatId: Long): MutableList<ChatMessage>
     {
         return this.chatList.byId<ChatMessage>(chatId) ?: mutableListOf()
     }
@@ -104,5 +112,7 @@ object ChatService
         }
         return unreadedSet.size
     }
+
+    fun getLastMessageId():Long { return this.messageId }
 
 }
